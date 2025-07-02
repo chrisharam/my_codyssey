@@ -1,3 +1,4 @@
+import json
 file = '/workspaces/my_codyssey/Main/mission_computer_main.log'
 dataSet = []
 try:
@@ -13,9 +14,11 @@ try:
                 }
                 dataSet.append(entry)
     dataSet.sort(key=lambda x: x['time'], reverse = True)
-    
-    
-
+    with open("mission_computer_main.json",mode = 'w',encoding = 'utf-8') as newFile:
+        for index in dataSet:
+            json.dump(index, newFile,ensure_ascii=False)
+            newFile.write('\n')
+            
 except FileNotFoundError:
     print("File isn't found")
 except UnicodeDecodeError:
