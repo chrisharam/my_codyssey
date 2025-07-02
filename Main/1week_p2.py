@@ -7,6 +7,8 @@ try:
             index = line.strip().split(',')
             if len(index) == 3:
                 dataSet.append(index)
+    dataSet.sort(reverse = True)
+
 
 except FileNotFoundError:
     print("File isn't found")
