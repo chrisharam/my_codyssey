@@ -6,9 +6,15 @@ try:
         for line in f:
             index = line.strip().split(',')
             if len(index) == 3:
-                dataSet.append(index)
-    dataSet.sort(reverse = True)
-
+                entry={
+                    'time' : index[0],
+                    'info' : index[1],
+                    'message' : index[2]
+                }
+                dataSet.append(entry)
+    dataSet.sort(key=lambda x: x['time'], reverse = True)
+    
+    
 
 except FileNotFoundError:
     print("File isn't found")
