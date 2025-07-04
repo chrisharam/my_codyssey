@@ -48,5 +48,3 @@ except ValueError as e:
     print(f"input error: {e}")
 except Exception as e:
     print(f"Unexptected error: ")
-
-
