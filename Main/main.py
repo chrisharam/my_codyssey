@@ -12,7 +12,7 @@ try:
     with open(file, mode= 'r', encoding = 'utf-8') as f:
         print(f.read())
 
-    with open("log_analysis_markdown", mode='a', encoding = 'utf-8') as mk:
+    with open("log_analysis_markdown", mode='w', encoding = 'utf-8') as mk:
         for line in log_analysis:
             mk.write(line + '\n')
 
