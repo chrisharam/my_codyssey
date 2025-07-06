@@ -35,7 +35,7 @@ def unlock_zip():
             process_time = time.time() - start_time
             print('Time taken to complete the task: {:.2f} seconds'.format(process_time))
 
-            with open('password.txt', 'w') as f:
+            with open('/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey-1/Main/Stage_1/process_2/1-1/password.txt', 'w') as f:
                 f.write(pwd)
             pass_found = True
             break
