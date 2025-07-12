@@ -56,8 +56,8 @@ def unzip_cctv(zip_path, extract_to):
         print(f"{extract_to} already exists. Skipping extraction.")
 
 if __name__ == "__main__":
-    zip_file = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey-2/Main/Stage_1/process_2/2-9/cctv.zip"
-    extract_folder = "CCTV"
+    zip_file = "/workspaces/my_codyssey/Main/Stage_1/process_2/2-9/cctv.zip"
+    extract_folder = "/workspaces/my_codyssey/Main/Stage_1/process_2/2-9/CCTV"  # 원하는 위치로 수정
 
     unzip_cctv(zip_file, extract_folder)
 
