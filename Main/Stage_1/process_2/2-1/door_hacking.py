@@ -9,7 +9,7 @@ def unlock_zip():
     pass_found = False
 
     candidate = string.ascii_lowercase + string.digits
-    zip_path = '/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey-1/Main/Stage_1/process_2/1-1/emergency_storage_key.zip'
+    zip_path = '/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey-1/Main/Stage_1/process_2/2-1/emergency_storage_key.zip'
 
     try:
         locked_file = zipfile.ZipFile(zip_path)

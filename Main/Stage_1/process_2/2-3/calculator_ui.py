@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QGridLayout, QVB
 from PyQt5.QtCore import Qt
 
 
-class Calculator(QWidget):
+class CalculatorUIBase(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("iPhone Calculator Clone")
@@ -70,6 +70,6 @@ class Calculator(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    calc = Calculator()
+    calc = CalculatorUIBase()
     calc.show()
     sys.exit(app.exec_())
