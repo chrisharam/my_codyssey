@@ -9,7 +9,7 @@ def unlock_zip():
     pass_found = False
 
     candidate = string.ascii_lowercase + string.digits
-    zip_path = '/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey-1/Main/Stage_1/process_2/2-1/emergency_storage_key.zip'
+    zip_path = '/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey-1/Main/Stage_1/process_2/2-01/emergency_storage_key.zip'
 
     try:
         locked_file = zipfile.ZipFile(zip_path)
@@ -35,7 +35,7 @@ def unlock_zip():
             process_time = time.time() - start_time
             print('Time taken to complete the task: {:.2f} seconds'.format(process_time))
 
-            with open('/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey-1/Main/Stage_1/process_2/2-1/password.txt', 'w') as f:
+            with open('/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey-1/Main/Stage_1/process_2/2-01/password.txt', 'w') as f:
                 f.write(pwd)
             pass_found = True
             break

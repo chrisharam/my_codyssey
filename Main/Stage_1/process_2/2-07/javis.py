@@ -20,7 +20,7 @@ def record_voice():
         print(f"Failed to record: {e}")
         return
 
-    folder = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_2/2-7/records"
+    folder = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_2/2-07/records"
     os.makedirs(folder, exist_ok=True)
 
     now = datetime.now()

@@ -86,7 +86,7 @@ class CCTVCheck(QWidget):
             self.close()
 
 if __name__ == "__main__":
-    folder = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_2/2-9/CCTV"
+    folder = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_2/2-09/CCTV"
 
     app = QApplication(sys.argv)
     window = CCTVCheck(folder)

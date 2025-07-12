@@ -54,7 +54,7 @@ def save_text_to_csv(wav_path, text):
     print(f"Saved STT result to {csv_path}")
 
 def process_all_recordings():
-    folder = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_2/2-7/records"
+    folder = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_2/2-07/records"
     wav_files = list_wav_files(folder)
     if not wav_files:
         print("녹음 파일이 없습니다.")
