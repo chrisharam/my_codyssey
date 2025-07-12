@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 
-# 계산 로직 클래스
+# logic of calculation
 class Calculator:
     def __init__(self):
         self.reset()
@@ -14,15 +14,15 @@ class Calculator:
         self.current = "0"
         self.operator = None
         self.operand = None
-        self.result_shown = False
+        self.result_shown = False   #check if previous result is currently displayed.
 
     def input_digit(self, digit):
-        if self.result_shown:
+        if self.result_shown:   # Start new input after showing result
             self.current = digit
             self.result_shown = False
-        elif self.current == "0":
+        elif self.current == "0":   # replace initial zero with digit
             self.current = digit
-        else:
+        else:   #append
             self.current += digit
 
     def input_dot(self):
@@ -30,9 +30,9 @@ class Calculator:
             self.current += "."
 
     def negative_positive(self):
-        if self.current.startswith("-"):
+        if self.current.startswith("-"):    #neg --> positive
             self.current = self.current[1:]
-        elif self.current != "0":
+        elif self.current != "0":   # positive(not zero) --> neg
             self.current = "-" + self.current
 
     def percent(self):
@@ -51,22 +51,27 @@ class Calculator:
         if b == 0: raise ZeroDivisionError
         return a / b
 
+    # when previous operator is set and result isn't shown,
+    # we have to calculate previous operation first.
+    # ex) 3 + 4 and when push *,
+    #     7(3 + 4) must be calculated.
     def prepare_operation(self, op):
         if self.operator and not self.result_shown:
-            self.equal()
+            self.equal()    #Do previous logic
         try:
-            self.operand = float(self.current)
+            self.operand = float(self.current)  # save current number value
         except:
             self.current = "Error"
             return
-        self.operator = op
-        self.current = "0"
+        self.operator = op # save new operation's name.
+        self.current = "0"  # initialize current number and ready to get input-value
 
     def equal(self):
         if not self.operator or self.operand is None:
             return
-        try:
+        try: # Do operation using previous numbers and current number
             right = float(self.current)
+            # operand is left number.
             if self.operator == "+": result = self.add(self.operand, right)
             elif self.operator == "-": result = self.subtract(self.operand, right)
             elif self.operator == "×": result = self.multiply(self.operand, right)
@@ -76,13 +81,13 @@ class Calculator:
                 self.current = self.current[:-2]
             self.operator = None
             self.operand = None
-            self.result_shown = True
+            self.result_shown = True # so as to show previous result is shown.
         except ZeroDivisionError:
             self.current = "Error: Div by 0"
         except:
             self.current = "Error"
 
-# UI 클래스
+# UI
 class CalculatorApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -119,12 +124,13 @@ class CalculatorApp(QWidget):
                 btn.setFixedHeight(60)
                 btn.setStyleSheet("font-size: 18px;")
                 if btn_text == "0":
+                    # 0 button take 2 places.
                     grid.addWidget(btn, row_idx + 1, col_idx, 1, 2)
                     col_idx += 2
                 else:
                     grid.addWidget(btn, row_idx + 1, col_idx)
                     col_idx += 1
-                # 핵심: 버튼 텍스트를 partial로 전달
+                # retrun button ext through partial method
                 btn.clicked.connect(partial(self.handle_button, btn_text))
 
         vbox.addLayout(grid)
