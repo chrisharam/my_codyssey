@@ -14,7 +14,7 @@ def record_voice(duration=5, samplerate=44100):
         print(f"Failed to record: {e}")
         return None
 
-    folder = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey-2/Main/Stage_1/process_2/2-7/records"
+    folder = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_2/2-7/records"
     os.makedirs(folder, exist_ok=True)
 
     now = datetime.now()
@@ -37,7 +37,7 @@ def speech_to_text(wav_path):
     with sr.AudioFile(wav_path) as source:
         audio = r.record(source)  # 전체 오디오 읽기
     try:
-        text = r.recognize_google(audio, language='en-US')  # 한국어 인식
+        text = r.recognize_google(audio, language='en-US')  # 영어 인식
         return text
     except sr.UnknownValueError:
         return "[인식 실패]"
@@ -54,7 +54,7 @@ def save_text_to_csv(wav_path, text):
     print(f"Saved STT result to {csv_path}")
 
 def process_all_recordings():
-    folder = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey-2/Main/Stage_1/process_2/2-7/records"
+    folder = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_2/2-7/records"
     wav_files = list_wav_files(folder)
     if not wav_files:
         print("녹음 파일이 없습니다.")

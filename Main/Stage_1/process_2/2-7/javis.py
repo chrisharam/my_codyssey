@@ -15,12 +15,12 @@ def record_voice():
     print(" Start recording...")
     try:
         recording = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=1, dtype='int16')
-        sd.wait()  # wait until recording is done.
+        sd.wait()  # wait unt1il recording is done.
     except Exception as e:
         print(f"Failed to record: {e}")
         return
 
-    folder = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey-2/Main/Stage_1/process_2/2-7/records"
+    folder = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_2/2-7/records"
     os.makedirs(folder, exist_ok=True)
 
     now = datetime.now()
