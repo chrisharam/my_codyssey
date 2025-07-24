@@ -1,5 +1,5 @@
 import json
-file = '/workspaces/my_codyssey/Main/1-3/Mars_Base_Inventory_List.csv'
+file = '/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_1/1-3/Mars_Base_Inventory_List.csv'
 dataSet = []
 sorted = []
 try:
@@ -27,7 +27,7 @@ try:
                 print(item)
         print('\n')
     
-    output_path = '/workspaces/my_codyssey/Main/1-3/Mars_Base_Inventory_danger.csv'
+    output_path = '/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_1/1-3/Mars_Base_Inventory_danger.csv'
     with open(output_path,mode = 'w',encoding = 'utf-8') as wr:
         for line in dataSet:
             if len(line) == 5:
