@@ -8,59 +8,69 @@ area_map_data = {}
 area_category_data = {}
 area_struct_data = []
 
-try:
-    with open(area_map_path,"r",encoding="utf-8-sig") as f:
-        reader = csv.reader(f)
-        next(reader)
-        for line in reader:
-            x, y, mountain = int(line[0]), int(line[1]), int(line[2])
-            if mountain == 1:
-                mountain = "O"
-            else:
-                mountain = "X"
-            area_map_data[(x,y)] = mountain
-        print("\narea_map_data dictionanry undertakes key(x,y) and value(mountaion)")
 
-    with open(area_category_path,"r",encoding = "utf-8-sig") as f:
-        reader = csv.reader(f)
-        next(reader)
-        for line in reader:
-            area_category_data[int(line[0])] = line[1]
-        print("\narea_category_data dictionary undertakes key(category) and value(struct).")
+def _load_area_data():
+    try:
+        with open(area_map_path,"r",encoding="utf-8-sig") as f:
+            reader = csv.reader(f)
+            next(reader)
+            for line in reader:
+                x, y, mountain = int(line[0]), int(line[1]), int(line[2])
+                if mountain == 1:
+                    mountain = "O"
+                else:
+                    mountain = "X"
+                area_map_data[(x,y)] = mountain
 
-    with open(area_struct_path, "r",encoding="utf-8-sig") as f:
-        reader = csv.reader(f)
-        next(reader)
-        for line in reader:
-            x,y,category,area = int(line[0]),int(line[1]), int(line[2]),int(line[3])
-            mountain = area_map_data.get((x,y), 0)
-            struct = area_category_data.get(category,"NONE")
-            #dictionary in list
-            area_struct_data.append({
-                "x" : x,
-                "y" : y,
-                "area" : area,
-                "mountain" : mountain,
-                "category": category,
-                "struct" : struct
-            })
-        print("\nTotal data is merged in area_struct_data")
+        with open(area_category_path,"r",encoding = "utf-8-sig") as f:
+            reader = csv.reader(f)
+            next(reader)
+            for line in reader:
+                area_category_data[int(line[0])] = line[1]
 
-        print("\n"+80*"-")
-        print("\n[Selected 10 Data from Merged Data]")
-        for item in area_struct_data[:10]:
+        with open(area_struct_path, "r",encoding="utf-8-sig") as f:
+            reader = csv.reader(f)
+            next(reader)
+            for line in reader:
+                x,y,category,area = int(line[0]),int(line[1]), int(line[2]),int(line[3])
+                mountain = area_map_data.get((x,y), 0)
+                struct = area_category_data.get(category,"NONE")
+                #dictionary in list
+                area_struct_data.append({
+                    "x" : x,
+                    "y" : y,
+                    "area" : area,
+                    "mountain" : mountain,
+                    "category": category,
+                    "struct" : struct
+                })
+    except FileNotFoundError:
+        print("Error: File not found")
+    except UnicodeDecodeError:
+        print("Error regarding Unicode")
+    except Exception as e:
+        print("Unknown error:", e)
+
+#for problem 2
+def get_area_struct_data():
+        return area_struct_data
+
+_load_area_data()
+
+if __name__ == '__main__':
+    print("\n"+80*"-")
+    print("\n\t\t\t\t<< Description >>")
+    print("\narea_map_data dictionanry undertakes key(x,y) and value(mountaion)")
+    print("\narea_category_data dictionary undertakes key(category) and value(struct).")
+    print("\nTotal data is merged in area_struct_data", len(area_struct_data))
+    
+    print("\n"+80*"-")
+    print("\n\t\t\t[Selected 10 Data from Merged Data]")
+    for item in area_struct_data[:10]:
+        print(item)
+
+    print("\n"+80*"-")
+    print("\n\t\t\t\t[Area 1 Data]")
+    for item in area_struct_data:
+        if item["area"] == 1:
             print(item)
-
-        print("\n"+80*"-")
-        print("\n[Area 1 Data]")
-        for item in area_struct_data:
-            if item["area"] == 1:
-                print(item)
-
-
-except FileNotFoundError:
-    print("Error: File not found")
-except UnicodeDecodeError:
-    print("Error regarding Unicode")
-except Exception as e:
-    print("Unknown error:", e)
