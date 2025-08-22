@@ -1,62 +1,35 @@
-import time
-import string
-import zipfile
-import itertools
+# ===============================================
+# Google Colab: GPU 기반 Zip 패스워드 크래킹
+# ===============================================
 
-def unlock_zip():
-    start_time = time.time()
-    attempts = 0
-    pass_found = False
+# 1) 시스템 업데이트 & 필수 도구 설치
+!apt-get update -qq
+!apt-get install -y hashcat p7zip-full john -qq  # hashcat + zip2john
+!hashcat --version
 
-    candidate = string.ascii_lowercase + string.digits
-    zip_path = '/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey-1/Main/Stage_1/process_2/2-01/emergency_storage_key.zip'
+# 2) GitHub에서 프로젝트 클론 (사용자 repo로 교체!)
+!rm -rf my_codyssey
+!git clone https://github.com/<YOUR_GITHUB_ID>/<YOUR_REPO>.git my_codyssey
 
-    try:
-        locked_file = zipfile.ZipFile(zip_path)
-    except FileNotFoundError:
-        print("Can't find the zipped file.")
-        return
-    except zipfile.BadZipFile:
-        print("Wrong zip file structure.")
-        return
+# 3) 압축파일 경로 설정
+ZIP_PATH = "/content/my_codyssey/Main/Stage_1/process_2/2-01/emergency_storage_key.zip"
+HASH_PATH = "/content/zip.hash"
+PASSWORD_FILE = "/content/my_codyssey/Main/Stage_1/process_2/2-01/password.txt"
 
-    print("Start decryption")
-    print("Start time:", time.strftime('%Y-%m-%d %H:%M:%S'))
+# 4) zip → hashcat용 해시 추출
+!zip2john "{ZIP_PATH}" > {HASH_PATH}
+!head -n 5 {HASH_PATH}
 
-    for pwd_tuple in itertools.product(candidate, repeat=6):
-        pwd = ''.join(pwd_tuple)
-        attempts += 1
+# 5) hashcat 실행
+# -m 값: ZIP 포맷에 따라 다름
+#   PKZIP (legacy): 17200
+#   WinZip AES: 13600
+#   일반 PKZIP + 암호: 17225 등
+# (우선 17200부터 시도, 안되면 다른 모드 확인 필요)
+!hashcat -m 17200 -a 3 {HASH_PATH} -1 ?l?d '?1?1?1?1?1?1' --force --status --status-timer=60 --machine-readable --potfile-path=/content/hashcat.potfile
 
-        try:
-            locked_file.extractall(pwd=bytes(pwd, 'utf-8'))
-            print('Successful decryption.')
-            print('Password:', pwd)
-            print('Total attempts:', attempts)
-            process_time = time.time() - start_time
-            print('Time taken to complete the task: {:.2f} seconds'.format(process_time))
+# 6) 크래킹된 비밀번호 확인
+!hashcat -m 17200 {HASH_PATH} --show --potfile-path=/content/hashcat.potfile > {PASSWORD_FILE}
+!cat {PASSWORD_FILE}
 
-            with open('/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey-1/Main/Stage_1/process_2/2-01/password.txt', 'w') as f:
-                f.write(pwd)
-            pass_found = True
-            break
-        except RuntimeError:
-            #When trying to decrypt pwd and fail, it passes.
-            pass
-        except Exception as e:
-            msg = str(e)
-            if ('Error -3 while decompressing data' in msg) or ('Bad CRC-32' in msg):
-                #ignore wrong pwd
-                pass
-            else:
-                print(f"Unexpected error occurred: {e}")
-                break
-
-        if attempts % 1000 == 0:
-            process_time = time.time() - start_time
-            print(f"Attempts: {attempts}, Processing time: {process_time:.2f} seconds")
-
-    if not pass_found:
-        print("❌ Password not found.")
-
-if __name__ == '__main__':
-    unlock_zip()
+print("✅ Password cracking attempt finished. Check password.txt")
