@@ -1,110 +1,78 @@
+# door_hacking.py
+
+import zipfile
 import itertools
 import string
-import zipfile
-import multiprocessing as mp
 import time
-import sys
+import multiprocessing as mp
 
-# 파일 경로
+# zip 파일 경로
 ZIP_PATH = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_2/2-01/emergency_storage_key.zip"
-PASSWORD_FILE = "/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_2/2-01/password.txt"
+PASSWORD_FILE = "password.txt"
 
-# 문자 집합: 소문자 + 숫자 + 대문자
-CHARSET = string.ascii_lowercase + string.digits + string.ascii_uppercase
-PREFIX_LENGTH = 2
-SUFFIX_LENGTH = 4
-REPORT_INTERVAL = 10_000_000  # 1천만 번 시도마다 출력
+charset = string.ascii_lowercase + string.digits
+pwd_length = 6
+total_attempts = len(charset) ** pwd_length
+print_interval = 1_000_000  # 100만번마다 진행 상황 출력
 
-def save_password(password):
-    """비밀번호를 파일에 저장"""
-    try:
-        with open(PASSWORD_FILE, "w") as f:
-            f.write(password)
-    except Exception as e:
-        print(f"[ERROR] Failed to save password: {e}")
-
-def worker(prefix_chunk, total_tasks, start_time, found, attempts):
-    """멀티프로세스 작업자 - 각 프로세스가 독립적으로 작업 수행"""
+def try_password(pwd):
+    """zip 파일 비밀번호 테스트 (I/O 최소화)"""
     try:
         with zipfile.ZipFile(ZIP_PATH) as zf:
-            local_attempts = 0
-            
-            for prefix_chars in prefix_chunk:
-                if found.value:
-                    return
-                prefix_str = ''.join(prefix_chars)
+            # testzip()는 파일 CRC만 체크, 비밀번호가 맞으면 None 반환
+            if zf.testzip() is None:
+                return pwd
+    except:
+        return None
+    return None
 
-                for suffix_chars in itertools.product(CHARSET, repeat=SUFFIX_LENGTH):
-                    if found.value:
-                        return
-                    
-                    candidate = prefix_str + ''.join(suffix_chars)
-                    local_attempts += 1
-                    
-                    # 1천만 번 시도마다 공유 변수 업데이트 및 출력
-                    if local_attempts % REPORT_INTERVAL == 0:
-                        with attempts.get_lock():
-                            attempts.value += REPORT_INTERVAL
-                            elapsed = time.time() - start_time
-                            progress = (attempts.value / total_tasks) * 100
-                            sys.stdout.write(f"\r[INFO] {attempts.value} attempts ({progress:.2f}%), elapsed: {elapsed:.2f} sec")
-                            sys.stdout.flush()
+def password_worker(chunk):
+    """멀티프로세싱용 worker, chunk 단위 처리"""
+    for p in chunk:
+        pwd = ''.join(p)
+        result = try_password(pwd)
+        if result:
+            return result
+    return None
 
-                    try:
-                        zf.setpassword(candidate.encode())
-                        if zf.testzip() is None:
-                            print(f"\n[SUCCESS] Password found: {candidate}")
-                            save_password(candidate)
-                            found.value = True
-                            return
-                    except Exception:
-                        pass # 압축 오류는 무시
-
-    except Exception as e:
-        print(f"[ERROR][Worker] {e}")
+def chunked_product(iterable, chunk_size):
+    """generator로 itertools.product를 chunk 단위로 반환"""
+    it = iter(iterable)
+    while True:
+        chunk = list(itertools.islice(it, chunk_size))
+        if not chunk:
+            return
+        yield chunk
 
 def unlock_zip():
-    """ZIP 암호 해독 메인 함수"""
-    try:
-        total_attempts = len(CHARSET) ** (PREFIX_LENGTH + SUFFIX_LENGTH)
-        start_time = time.time()
-        print("[INFO] Start cracking...")
-        print(f"[INFO] Charset size: {len(CHARSET)}, Total possible: {total_attempts}")
+    start_time = time.time()
+    print(f"[INFO] Start cracking... Total possible: {total_attempts}")
 
-        # 멀티프로세스 공유 변수
-        found = mp.Value('b', False)
-        attempts = mp.Value('i', 0)
+    pool = mp.Pool(mp.cpu_count())
+    attempts = 0
 
-        # 앞 2자리 조합 생성 및 CPU 코어 수로 분할
-        prefixes = list(itertools.product(CHARSET, repeat=PREFIX_LENGTH))
-        
-        # 컴퓨터 과열을 막기 위해 코어 수를 조절할 수 있습니다 (예: mp.cpu_count() - 2)
-        num_proc = mp.cpu_count()
-        chunk_size = len(prefixes) // num_proc
-        prefix_chunks = [prefixes[i*chunk_size:(i+1)*chunk_size] for i in range(num_proc)]
-        if len(prefixes) % num_proc != 0:
-            prefix_chunks[-1].extend(prefixes[num_proc*chunk_size:])
+    # itertools.product generator
+    product_gen = itertools.product(charset, repeat=pwd_length)
 
-        # 프로세스 실행
-        processes = []
-        for chunk in prefix_chunks:
-            p = mp.Process(target=worker, args=(chunk, total_attempts, start_time, found, attempts))
-            processes.append(p)
-            p.start()
-
-        for p in processes:
-            p.join()
-
-        if not found.value:
-            print("\n[FAIL] Password not found in given charset.")
-        else:
+    # 멀티프로세싱 imap_unordered로 chunk 단위 처리
+    chunk_size = 1000
+    for result in pool.imap_unordered(password_worker, chunked_product(product_gen, chunk_size)):
+        attempts += chunk_size
+        if result:
             elapsed = time.time() - start_time
-            print(f"[DONE] Elapsed time: {elapsed:.2f} sec")
+            print(f"[SUCCESS] Password found: {result}, total attempts: {attempts}, elapsed: {elapsed:.2f} sec")
+            with open(PASSWORD_FILE, "w") as f:
+                f.write(result)
+            pool.terminate()
+            return result
+        if attempts % print_interval == 0:
+            elapsed = time.time() - start_time
+            print(f"[INFO] {attempts} attempts, elapsed: {elapsed:.2f} sec")
 
-    except FileNotFoundError:
-        print(f"[ERROR] ZIP file not found at {ZIP_PATH}")
-    except Exception as e:
-        print(f"[ERROR] Unexpected error: {e}")
+    pool.close()
+    pool.join()
+    print("[FAIL] Password not found")
+    return None
 
 if __name__ == "__main__":
     unlock_zip()
