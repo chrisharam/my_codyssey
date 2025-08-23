@@ -11,8 +11,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '1
 from mars_mission_computer_3 import MissionComputer as parentClass
 
 # 전역 상수 정의
-INFO_LOG_PATH = '/workspaces/my_codyssey/Main/Stage_1/1-9/mission_info.json'
-LOAD_LOG_PATH = '/workspaces/my_codyssey/Main/Stage_1/1-9/mission_load.json'
+INFO_LOG_PATH = '/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_1/1-9/mission_info.json'
+LOAD_LOG_PATH = '/Users/jeongharam/SW_CAMP_PROJECT/my_codyssey/Main/Stage_1/process_1/1-9/mission_load.json'
+
 
 class MissionComputer(parentClass):
     def __init__(self):
