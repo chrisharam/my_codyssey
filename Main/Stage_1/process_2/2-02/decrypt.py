@@ -26,10 +26,8 @@ def main():
         print(f"[ERROR] Cannot find {PASSWORD_FILE}")
         return
 
-    # Caesar cipher 해독 시도 및 출력
     caesar_cipher_decode(cipher_text)
 
-    # 사용자 입력: 몇 번째 자리수로 암호를 해독했는지
     while True:
         shift_input = input("\nEnter the shift number that gives the correct decoding: ")
         try:
