@@ -1,12 +1,9 @@
 import sys
 from functools import partial
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QGridLayout
-)
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGridLayout, QPushButton, QLabel, QVBoxLayout, QSizePolicy
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QFont, QFontMetrics
 
-# logic of calculation
 class Calculator:
     """
     사칙 연산 및 특수 기능을 담당하는 계산기 로직 클래스입니다.
@@ -30,11 +27,13 @@ class Calculator:
             self.current = digit
         else:
             self.current += digit
+        return self.current
 
     def input_dot(self):
         """소수점을 입력합니다. 이미 소수점이 있으면 입력되지 않습니다."""
         if "." not in self.current:
             self.current += "."
+        return self.current
 
     def negative_positive(self):
         """현재 숫자의 부호를 변경합니다."""
@@ -42,6 +41,7 @@ class Calculator:
             self.current = self.current[1:]
         elif self.current != "0":
             self.current = "-" + self.current
+        return self.current
 
     def percent(self):
         """현재 숫자를 백분율로 변환합니다."""
@@ -53,6 +53,7 @@ class Calculator:
                 self.current = self.current[:-2]
         except:
             self.current = "Error"
+        return self.current
 
     def add(self, a, b):
         return a + b
@@ -78,9 +79,10 @@ class Calculator:
             self.operand = float(self.current)
         except:
             self.current = "Error"
-            return
+            return self.current
         self.operator = op
         self.current = "0"
+        return str(self.operand)
 
     def equal(self):
         """
@@ -112,86 +114,91 @@ class Calculator:
             self.current = "Error"
         except:
             self.current = "Error"
+        return self.current
 
-# UI
-class CalculatorApp(QWidget):
+class CalculatorUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.calc = Calculator()
-        self.initUI()
-
-    def initUI(self):
-        """
-        UI를 초기화하고 레이아웃을 설정합니다.
-        """
         self.setWindowTitle("iPhone Calculator Clone")
-        self.setFixedSize(360, 600)
-        self.setStyleSheet("background-color: #2e2e2e; color: white;")
+        self.setFixedSize(QSize(360, 600))
+        self.setStyleSheet("background-color: black;")
+        
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
 
+        # 결과 표시 라벨
         self.display = QLabel("0")
         self.display.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.display.setStyleSheet("""
             font-size: 80px;
             padding: 20px;
+            color: white;
         """)
         self.display.setFixedHeight(120)
-
-        main_layout = QVBoxLayout()
-        main_layout.setSpacing(10)
+        
+        main_layout = QVBoxLayout(self.central_widget)
+        main_layout.addStretch()
         main_layout.addWidget(self.display)
         
         button_grid = QGridLayout()
         button_grid.setSpacing(10)
+        main_layout.addLayout(button_grid)
 
-        # 버튼 데이터를 행, 열, 텍스트로 구성
+        # 버튼 데이터: (버튼 텍스트, 행, 열, 가로 병합, 배경색)
+        # 새로운 로직의 연산자 기호에 맞게 변경
         buttons = [
-            ("AC", 0, 0), ("+/-", 0, 1), ("%", 0, 2), ("÷", 0, 3),
-            ("7", 1, 0), ("8", 1, 1), ("9", 1, 2), ("×", 1, 3),
-            ("4", 2, 0), ("5", 2, 1), ("6", 2, 2), ("-", 2, 3),
-            ("1", 3, 0), ("2", 3, 1), ("3", 3, 2), ("+", 3, 3),
-            ("0", 4, 0), (".", 4, 2), ("=", 4, 3)
+            ('AC', 0, 0, 1, '#a6a6a6'), ('+/-', 0, 1, 1, '#a6a6a6'), ('%', 0, 2, 1, '#a6a6a6'), ('÷', 0, 3, 1, '#ff9500'),
+            ('7', 1, 0, 1, '#333333'), ('8', 1, 1, 1, '#333333'), ('9', 1, 2, 1, '#333333'), ('×', 1, 3, 1, '#ff9500'),
+            ('4', 2, 0, 1, '#333333'), ('5', 2, 1, 1, '#333333'), ('6', 2, 2, 1, '#333333'), ('-', 2, 3, 1, '#ff9500'),
+            ('1', 3, 0, 1, '#333333'), ('2', 3, 1, 1, '#333333'), ('3', 3, 2, 1, '#333333'), ('+', 3, 3, 1, '#ff9500'),
+            ('0', 4, 0, 2, '#333333'), ('.', 4, 2, 1, '#333333'), ('=', 4, 3, 1, '#ff9500'),
         ]
         
-        # 버튼 스타일 및 레이아웃 설정
-        for btn_text, row, col in buttons:
-            btn = QPushButton(btn_text)
-            
-            # 버튼 스타일 설정
-            if btn_text in ["+", "-", "×", "÷", "="]:
-                color = "#ff9500"
-                text_color = "white"
-            elif btn_text in ["AC", "+/-", "%"]:
-                color = "#a6a6a6"
-                text_color = "black"
-            else:
-                color = "#505050"
-                text_color = "white"
-            
-            # '0' 버튼은 가로로 두 칸 차지
-            colspan = 2 if btn_text == "0" else 1
+        # 버튼 크기 설정
+        button_size = QSize(80, 80)
+        zero_button_size = QSize(170, 80)
 
-            btn.setStyleSheet(f"""
+        # 버튼 생성 및 이벤트 연결
+        for text, row, col, colspan, color in buttons:
+            btn = QPushButton(text)
+            
+            # 버튼 텍스트 색상을 결정합니다. 'AC', '+/-', '%' 버튼은 검은색 글자를 사용합니다.
+            text_color = "black" if text in ['AC', '+/-', '%'] else "white"
+
+            style_sheet = f"""
                 QPushButton {{
                     font-size: 30px;
                     background-color: {color};
                     border-radius: 40px;
-                    height: 80px;
                     color: {text_color};
                 }}
                 QPushButton:pressed {{
                     background-color: #d1d1d1;
                 }}
-            """)
+            """
             
+            # '0' 버튼은 너비를 더 넓게 설정합니다.
+            if text == '0':
+                btn.setFixedSize(zero_button_size)
+            else:
+                btn.setFixedSize(button_size)
+            
+            # 버튼 크기 정책을 무시하도록 설정
+            btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            btn.setStyleSheet(style_sheet)
+            
+            # 버튼 폰트를 'Inter'로 설정
+            btn_font = QFont("Inter", 30)
+            btn.setFont(btn_font)
+            
+            btn.clicked.connect(partial(self.handle_button, text))
             button_grid.addWidget(btn, row, col, 1, colspan)
 
-            btn.clicked.connect(partial(self.handle_button, btn_text))
-
-        main_layout.addLayout(button_grid)
-        self.setLayout(main_layout)
-
     def handle_button(self, value):
-        """버튼 클릭 이벤트를 처리하고 계산기 로직과 연결합니다."""
+        """
+        버튼 클릭 이벤트를 처리하고 계산기 로직과 연결합니다.
+        """
         if value == "AC":
             self.calc.reset()
         elif value == "+/-":
@@ -208,9 +215,29 @@ class CalculatorApp(QWidget):
             self.calc.input_digit(value)
 
         self.display.setText(self.calc.current)
+        self.adjust_font_size()
+
+    def adjust_font_size(self):
+        """
+        입력된 텍스트 길이에 따라 글꼴 크기를 동적으로 조절합니다.
+        """
+        text = self.display.text()
+        font = self.display.font()
+        font_metrics = QFontMetrics(font)
+        text_width = font_metrics.width(text)
+        
+        max_width = self.display.width() * 0.9
+        
+        if text_width > max_width:
+            new_font_size = font.pointSize() * max_width / text_width
+            new_font = QFont("Inter", int(new_font_size))
+            self.display.setFont(new_font)
+        else:
+            original_font = QFont("Inter", 80)
+            self.display.setFont(original_font)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = CalculatorApp()
+    window = CalculatorUI()
     window.show()
     sys.exit(app.exec_())
