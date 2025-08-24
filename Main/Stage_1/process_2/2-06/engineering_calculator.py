@@ -1,154 +1,105 @@
 import sys
 import math
+import random
 from functools import partial
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QGridLayout
-)
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QGridLayout, QSizePolicy
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QFontMetrics
 
-# 기본 계산기 로직
+# Calculator 클래스는 기본적인 사칙연산 및 계산기 기능을 담당합니다.
 class Calculator:
     """
-    사칙 연산 및 기본 기능을 담당하는 계산기 로직 클래스입니다.
+    기본적인 사칙연산 및 계산기 로직을 담당하는 부모 클래스입니다.
     """
     def __init__(self):
-        self.reset()
+        self.input_expression = ""
+        self.display_text = "0"
+        self.last_was_operator = False
+        self.memory = 0.0
 
-    def reset(self):
-        """계산기 상태를 초기화합니다."""
-        self.current = "0"
-        self.operator = None
-        self.operand = None
-        self.result_shown = False
-
-    def input_digit(self, digit):
-        """숫자를 입력받아 현재 숫자에 추가합니다."""
-        if self.result_shown:
-            self.current = digit
-            self.result_shown = False
-        elif self.current == "0":
-            self.current = digit
+    def _handle_number_input(self, value):
+        """숫자 및 소수점 입력을 처리합니다."""
+        if self.display_text == "0" or self.last_was_operator:
+            self.display_text = value
         else:
-            self.current += digit
+            self.display_text += value
+        self.input_expression += value
+        self.last_was_operator = False
 
-    def input_dot(self):
-        """소수점을 입력합니다. 이미 소수점이 있으면 입력되지 않습니다."""
-        if "." not in self.current:
-            self.current += "."
+    def _handle_operator_input(self, value):
+        """기본 연산자 입력을 처리합니다."""
+        if self.input_expression and self.input_expression[-1] in ["*", "/", "-", "+"]:
+            self.input_expression = self.input_expression[:-1] + value.replace("×", "*").replace("÷", "/")
+            self.display_text = self.display_text[:-1] + value
+        else:
+            self.input_expression += value.replace("×", "*").replace("÷", "/")
+            self.display_text += value
+        self.last_was_operator = True
 
-    def negative_positive(self):
-        """현재 숫자의 부호를 변경합니다."""
-        if self.current.startswith("-"):
-            self.current = self.current[1:]
-        elif self.current != "0":
-            self.current = "-" + self.current
-
-    def percent(self):
-        """현재 숫자를 백분율로 변환합니다."""
+    def _handle_equals(self):
+        """결과를 계산합니다."""
         try:
-            val = float(self.current) / 100
-            self.current = str(val)
-            if self.current.endswith(".0"):
-                self.current = self.current[:-2]
-        except:
-            self.current = "Error"
+            # y√x와 xʸ의 특수 문자열을 Python 연산자로 변환
+            temp_expression = self.input_expression.replace("y**", "**(1/").replace(")**", ")*")
+            result = eval(temp_expression)
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
+        self.last_was_operator = False
 
-    def add(self, a, b): return a + b
-    def subtract(self, a, b): return a - b
-    def multiply(self, a, b): return a * b
-    def divide(self, a, b):
-        if b == 0: raise ZeroDivisionError
-        return a / b
+    def _handle_clear(self):
+        """모든 값을 초기화합니다."""
+        self.input_expression = ""
+        self.display_text = "0"
+        self.last_was_operator = False
+        self.memory = 0.0
 
-    def prepare_operation(self, op):
-        """새로운 연산자를 준비하거나 이전 연산을 수행합니다."""
-        if self.operator and not self.result_shown:
-            self.equal()
+    def _handle_sign_change(self):
+        """현재 값의 부호를 변경합니다."""
         try:
-            self.operand = float(self.current)
-        except:
-            self.current = "Error"
-            return
-        self.operator = op
-        self.current = "0"
-        self.result_shown = False
+            current_value = eval(self.input_expression)
+            result = -current_value
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
 
-    def equal(self):
-        """현재 수식의 결과를 계산하여 표시합니다."""
-        if not self.operator or self.operand is None:
-            return
+    def _handle_percentage(self):
+        """현재 값의 퍼센트를 계산합니다."""
         try:
-            right = float(self.current)
-            if self.operator == "+": result = self.add(self.operand, right)
-            elif self.operator == "-": result = self.subtract(self.operand, right)
-            elif self.operator == "×": result = self.multiply(self.operand, right)
-            elif self.operator == "÷": result = self.divide(self.operand, right)
-            self.current = str(result)
-            if self.current.endswith(".0"):
-                self.current = self.current[:-2]
-            self.operator = None
-            self.operand = None
-            self.result_shown = True
-        except ZeroDivisionError:
-            self.current = "Error: Div by 0"
-        except:
-            self.current = "Error"
+            result = eval(self.input_expression) / 100
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
 
-# 공학용 계산기 로직
-class EngineeringCalculator(Calculator):
+class EngineeringCalculator(QWidget, Calculator):
     """
-    공학용 계산 기능을 추가한 클래스입니다.
-    """
-    def calc_sin(self): self._apply_func(lambda x: math.sin(math.radians(x)))
-    def calc_cos(self): self._apply_func(lambda x: math.cos(math.radians(x)))
-    def calc_tan(self): self._apply_func(lambda x: math.tan(math.radians(x)))
-    def calc_sinh(self): self._apply_func(math.sinh)
-    def calc_cosh(self): self._apply_func(math.cosh)
-    def calc_tanh(self): self._apply_func(math.tanh)
-    def square(self): self._apply_func(lambda x: x ** 2)
-    def cube(self): self._apply_func(lambda x: x ** 3)
-    def inverse(self): self._apply_func(lambda x: 1 / x)
-    def square_root(self): self._apply_func(math.sqrt)
-    def cube_root(self): self._apply_func(lambda x: x**(1/3))
-    def factorial(self): self._apply_func(math.factorial)
-    def power(self): self.prepare_operation("**")
-    def ten_to_power(self): self._apply_func(lambda x: 10 ** x)
-    def e_to_power(self): self._apply_func(lambda x: math.e ** x)
-    def log(self): self._apply_func(math.log10)
-    def natural_log(self): self._apply_func(math.log)
-
-    def insert_pi(self):
-        self.current = str(math.pi)
-        self.result_shown = True
-
-    def _apply_func(self, func):
-        """단일 피연산자 함수를 적용하고 결과를 업데이트합니다."""
-        try:
-            self.current = str(func(float(self.current)))
-            if self.current.endswith(".0"):
-                self.current = self.current[:-2]
-            self.result_shown = True
-        except:
-            self.current = "Error"
-
-# UI
-class EngineeringCalculatorApp(QWidget):
-    """
-    아이폰 공학용 계산기 UI와 기능을 통합한 클래스입니다.
+    Calculator 클래스를 상속받아 공학용 계산기 UI 및 기능을 구현하는 클래스입니다.
     """
     def __init__(self):
-        super().__init__()
-        self.calc = EngineeringCalculator()
+        # 부모 클래스의 생성자를 호출하여 초기화합니다.
+        QWidget.__init__(self)
+        Calculator.__init__(self)
+        
+        self.is_deg = True  # True: Degree, False: Radian
+
         self.initUI()
 
     def initUI(self):
+        """
+        UI를 초기화하고 레이아웃을 설정합니다.
+        """
         self.setWindowTitle("iPhone Engineering Calculator UI")
         self.setFixedSize(700, 400)
         self.setStyleSheet("background-color: #1c1c1c; color: white;")
 
         # 결과 표시 라벨
-        self.display = QLabel("0")
+        self.display = QLabel(self.display_text)
         self.display.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.display.setStyleSheet(
             "font-size: 50px; padding: 10px; border: none;"
@@ -158,13 +109,14 @@ class EngineeringCalculatorApp(QWidget):
         main_layout = QVBoxLayout()
         main_layout.setSpacing(5)
         
-        # 'Rad' 라벨 추가
-        rad_label = QLabel("Rad")
-        rad_label.setStyleSheet("font-size: 15px; color: #a6a6a6; margin-left: 20px;")
-        rad_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        # 'Rad'/'Deg' 라벨 추가
+        self.rad_label = QLabel("Deg")
+        self.rad_label.setStyleSheet("font-size: 15px; color: #a6a6a6; margin-left: 20px;")
+        self.rad_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
+        # 상단 라벨과 디스플레이를 위한 가로 레이아웃
         top_layout = QVBoxLayout()
-        top_layout.addWidget(rad_label)
+        top_layout.addWidget(self.rad_label)
         top_layout.addWidget(self.display)
         top_layout.setSpacing(0)
         
@@ -172,9 +124,8 @@ class EngineeringCalculatorApp(QWidget):
         
         button_grid = QGridLayout()
         button_grid.setSpacing(5)
-
+        
         # 이미지에 정확히 맞춰서 버튼 위치를 정의
-        # (버튼 텍스트, 행, 열, 가로 병합)
         buttons = [
             # 0행
             ("(", 0, 0), (")", 0, 1), ("mc", 0, 2), ("m+", 0, 3), 
@@ -185,12 +136,13 @@ class EngineeringCalculatorApp(QWidget):
             ("eˣ", 1, 4), ("10ˣ", 1, 5), ("7", 1, 6), ("8", 1, 7), 
             ("9", 1, 8), ("×", 1, 9),
             # 2행
-            ("¹/x", 2, 0), ("√x", 2, 1), ("∛x", 2, 2), ("sin", 2, 3), 
-            ("cos", 2, 4), ("tan", 2, 5), ("4", 2, 6), ("5", 2, 7), 
+            ("¹/x", 2, 0), ("√x", 2, 1), ("∛x", 2, 2), ("y√x", 2, 3), 
+            ("ln", 2, 4), ("log₁₀", 2, 5), ("4", 2, 6), ("5", 2, 7), 
             ("6", 2, 8), ("-", 2, 9),
             # 3행
-            ("ln", 3, 0), ("log₁₀", 3, 1), ("e", 3, 2), ("EE", 3, 3), 
-            ("1", 3, 6), ("2", 3, 7), ("3", 3, 8), ("+", 3, 9),
+            ("x!", 3, 0), ("sin", 3, 1), ("cos", 3, 2), ("tan", 3, 3), 
+            ("e", 3, 4), ("EE", 3, 5), ("1", 3, 6), ("2", 3, 7),
+            ("3", 3, 8), ("+", 3, 9),
             # 4행
             ("Deg", 4, 0), ("sinh", 4, 1), ("cosh", 4, 2), ("tanh", 4, 3), 
             ("π", 4, 4), ("Rand", 4, 5), ("0", 4, 6, 2), (".", 4, 8), 
@@ -210,7 +162,7 @@ class EngineeringCalculatorApp(QWidget):
             if btn_text in ["÷", "×", "-", "+", "="]:
                 color = "#ff9500"
                 text_color = "white"
-            elif btn_text in ["AC", "+/-", "%"]:
+            elif btn_text in ["AC", "+/-", "%", "2nd", "Deg"]:
                 color = "#a6a6a6"
                 text_color = "black"
             else:
@@ -220,70 +172,299 @@ class EngineeringCalculatorApp(QWidget):
             # '0' 버튼은 가로로 두 칸 차지
             if btn_text == "0":
                 grid_width = 2
+                btn.setFixedSize(QSize(115, 50))
             else:
                 grid_width = 1
+                btn.setFixedSize(QSize(50, 50))
 
             btn.setStyleSheet(f"""
                 QPushButton {{
                     font-size: 20px;
                     background-color: {color};
-                    border-radius: 20px;
-                    height: 50px;
+                    border-radius: 25px;
                     color: {text_color};
+                }}
+                QPushButton:pressed {{
+                    background-color: #d1d1d1;
                 }}
             """)
             
             button_grid.addWidget(btn, row, col, 1, grid_width)
-            
-            # 이벤트 핸들러 연결
-            if btn_text in ["sin", "cos", "tan", "sinh", "cosh", "tanh", "x²", "x³", "π", "¹/x", "√x", "∛x", "x!"]:
-                # 공학용 버튼
-                btn.clicked.connect(partial(self.handle_engineering_button, btn_text))
-            else:
-                # 일반 버튼
-                btn.clicked.connect(partial(self.handle_basic_button, btn_text))
-
+            btn.clicked.connect(partial(self.button_clicked, btn_text))
 
         main_layout.addLayout(button_grid)
         self.setLayout(main_layout)
 
-    def handle_basic_button(self, value):
-        """일반 계산기 버튼 이벤트를 처리합니다."""
-        if value == "AC":
-            self.calc.reset()
-        elif value == "+/-":
-            self.calc.negative_positive()
-        elif value == "%":
-            self.calc.percent()
-        elif value in ["+", "-", "×", "÷"]:
-            self.calc.prepare_operation(value)
-        elif value == "=":
-            self.calc.equal()
-        elif value == ".":
-            self.calc.input_dot()
-        else:
-            self.calc.input_digit(value)
-        self.display.setText(self.calc.current)
+    def button_clicked(self, value):
+        """
+        버튼 클릭 시 호출되는 메서드로, 계산 로직을 처리하고 화면에 표시합니다.
+        """
+        operators = ["÷", "×", "-", "+"]
 
-    def handle_engineering_button(self, value):
-        """공학용 계산기 버튼 이벤트를 처리합니다."""
-        if value == "sin": self.calc.calc_sin()
-        elif value == "cos": self.calc.calc_cos()
-        elif value == "tan": self.calc.calc_tan()
-        elif value == "sinh": self.calc.calc_sinh()
-        elif value == "cosh": self.calc.calc_cosh()
-        elif value == "tanh": self.calc.calc_tanh()
-        elif value == "x²": self.calc.square()
-        elif value == "x³": self.calc.cube()
-        elif value == "¹/x": self.calc.inverse()
-        elif value == "√x": self.calc.square_root()
-        elif value == "∛x": self.calc.cube_root()
-        elif value == "x!": self.calc.factorial()
-        elif value == "π": self.calc.insert_pi()
-        self.display.setText(self.calc.current)
+        if value.isdigit() or value == ".":
+            self._handle_number_input(value)
+        elif value in operators:
+            self._handle_operator_input(value)
+        elif value == "AC":
+            self._handle_clear()
+        elif value == "=":
+            self._handle_equals()
+        elif value == "+/-":
+            self._handle_sign_change()
+        elif value == "%":
+            self._handle_percentage()
+        elif value == "x²":
+            self._calculate_square()
+        elif value == "x³":
+            self._calculate_cube()
+        elif value in ["sin", "cos", "tan", "sinh", "cosh", "tanh"]:
+            self._calculate_trigonometric(value)
+        elif value == "π":
+            self._insert_pi()
+        elif value == "xʸ":
+            self.input_expression += "**"
+            self.display_text += "ʸ"
+            self.last_was_operator = True
+        elif value == "eˣ":
+            self._calculate_exp()
+        elif value == "10ˣ":
+            self._calculate_10_exp()
+        elif value == "¹/x":
+            self._calculate_reciprocal()
+        elif value == "√x":
+            self._calculate_sqrt()
+        elif value == "∛x":
+            self._calculate_cbrt()
+        elif value == "y√x":
+            self.input_expression += "y**"  # y와 ** 사이에 구분자를 추가
+            self.display_text += "ʸ√"
+            self.last_was_operator = True
+        elif value == "ln":
+            self._calculate_ln()
+        elif value == "log₁₀":
+            self._calculate_log10()
+        elif value == "x!":
+            self._calculate_factorial()
+        elif value == "e":
+            self._insert_e()
+        elif value == "EE":
+            self.input_expression += "e"
+            self.display_text += "e"
+        elif value == "Rand":
+            self._generate_random()
+        elif value == "Deg":
+            self._toggle_degree_radian()
+        elif value == "m+":
+            self._add_to_memory()
+        elif value == "m-":
+            self._subtract_from_memory()
+        elif value == "mc":
+            self._clear_memory()
+        elif value == "mr":
+            self._recall_memory()
+        elif value in ["(", ")"]:
+            self.input_expression += value
+            self.display_text += value
+
+        self.display.setText(self.display_text)
+        self.adjust_font_size()
+
+    # --- 요청된 기능 구현 메소드 ---
+    def _calculate_square(self):
+        """x의 제곱(x²)을 계산합니다."""
+        try:
+            result = eval(self.input_expression) ** 2
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
+
+    def _calculate_cube(self):
+        """x의 세제곱(x³)을 계산합니다."""
+        try:
+            result = eval(self.input_expression) ** 3
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
+
+    def _calculate_trigonometric(self, value):
+        """삼각함수(sin, cos, tan) 및 쌍곡선 삼각함수(sinh, cosh, tanh)를 계산합니다."""
+        try:
+            val = eval(self.input_expression)
+            if self.is_deg and value in ["sin", "cos", "tan"]:
+                val = math.radians(val)
+            
+            if value == "sin":
+                result = math.sin(val)
+            elif value == "cos":
+                result = math.cos(val)
+            elif value == "tan":
+                result = math.tan(val)
+            elif value == "sinh":
+                result = math.sinh(val)
+            elif value == "cosh":
+                result = math.cosh(val)
+            elif value == "tanh":
+                result = math.tanh(val)
+
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
+
+    def _insert_pi(self):
+        """원주율(π)을 입력합니다."""
+        self.input_expression = str(math.pi)
+        self.display_text = "π"
+        self.last_was_operator = False
+
+    # --- 기타 공학용 기능 구현 메소드 ---
+    def _calculate_exp(self):
+        """eˣ를 계산합니다."""
+        try:
+            result = math.exp(eval(self.input_expression))
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
+
+    def _calculate_10_exp(self):
+        """10ˣ를 계산합니다."""
+        try:
+            result = 10 ** eval(self.input_expression)
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
+
+    def _calculate_reciprocal(self):
+        """역수(¹/x)를 계산합니다."""
+        try:
+            result = 1 / eval(self.input_expression)
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
+
+    def _calculate_sqrt(self):
+        """제곱근(√x)을 계산합니다."""
+        try:
+            result = math.sqrt(eval(self.input_expression))
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
+
+    def _calculate_cbrt(self):
+        """세제곱근(∛x)을 계산합니다."""
+        try:
+            result = eval(self.input_expression) ** (1/3)
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
+    
+    def _calculate_ln(self):
+        """자연로그(ln)를 계산합니다."""
+        try:
+            result = math.log(eval(self.input_expression))
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
+
+    def _calculate_log10(self):
+        """상용로그(log₁₀)를 계산합니다."""
+        try:
+            result = math.log10(eval(self.input_expression))
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
+
+    def _calculate_factorial(self):
+        """팩토리얼(x!)을 계산합니다."""
+        try:
+            result = math.factorial(int(eval(self.input_expression)))
+            self.display_text = str(result)
+            self.input_expression = str(result)
+        except Exception as e:
+            self.display_text = "Error"
+            self.input_expression = ""
+    
+    def _insert_e(self):
+        """자연 상수(e)를 입력합니다."""
+        self.input_expression = str(math.e)
+        self.display_text = "e"
+        self.last_was_operator = False
+
+    def _generate_random(self):
+        """무작위 수를 생성합니다."""
+        result = random.random()
+        self.display_text = str(result)
+        self.input_expression = str(result)
+    
+    def _toggle_degree_radian(self):
+        """각도/라디안 모드를 전환합니다."""
+        self.is_deg = not self.is_deg
+        self.rad_label.setText("Deg" if self.is_deg else "Rad")
+
+    def _add_to_memory(self):
+        """메모리에 현재 값을 더합니다."""
+        try:
+            self.memory += eval(self.input_expression)
+        except Exception as e:
+            self.display_text = "Error"
+    
+    def _subtract_from_memory(self):
+        """메모리에서 현재 값을 뺍니다."""
+        try:
+            self.memory -= eval(self.input_expression)
+        except Exception as e:
+            self.display_text = "Error"
+
+    def _clear_memory(self):
+        """메모리 값을 0으로 초기화합니다."""
+        self.memory = 0.0
+
+    def _recall_memory(self):
+        """메모리에 저장된 값을 불러옵니다."""
+        self.input_expression = str(self.memory)
+        self.display_text = str(self.memory)
+        self.last_was_operator = False
+
+    def adjust_font_size(self):
+        """
+        입력된 텍스트 길이에 따라 글꼴 크기를 동적으로 조절합니다.
+        """
+        text = self.display.text()
+        font = self.display.font()
+        font_metrics = QFontMetrics(font)
+        text_width = font_metrics.width(text)
+        
+        max_width = self.display.width() * 0.9
+        
+        if text_width > max_width:
+            new_font_size = font.pointSize() * max_width / text_width
+            new_font = QFont("Inter", int(new_font_size))
+            self.display.setFont(new_font)
+        else:
+            original_font = QFont("Inter", 50)
+            self.display.setFont(original_font)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = EngineeringCalculatorApp()
+    window = EngineeringCalculator()
     window.show()
     sys.exit(app.exec_())
